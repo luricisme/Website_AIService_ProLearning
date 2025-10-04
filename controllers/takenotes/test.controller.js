@@ -7,4 +7,4 @@ class TestController {
     }
 }
 
-module.exports = new TestController();
+export default new TestController();

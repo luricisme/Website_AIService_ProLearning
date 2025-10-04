@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import testController from '../../controllers/takenotes/test.controller.js';
+
 const router = express.Router();
-const testController = require('../../controllers/takenotes/test.controller');
 
 /**
  * @swagger
@@ -20,5 +21,5 @@ const testController = require('../../controllers/takenotes/test.controller');
  */
 router.get('/hello-world', testController.helloWorld);
 
-module.exports = router;
+export default router;
 

@@ -1,7 +1,9 @@
-const takenotesRoutes = require('./takenotes/index.routes');
+import takeNotesRoutes from './takenotes/index.routes.js';
+import filesLoaderRoutes from './files-loader/index.routes.js';
 
 function route(app){
-    app.use('/', takenotesRoutes);
+    app.use('/', filesLoaderRoutes);
+    app.use('/', takeNotesRoutes);
 }
 
-module.exports = route;
+export default route;

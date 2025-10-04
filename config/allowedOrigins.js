@@ -3,4 +3,4 @@ const allowedOrigins = [
     'https://localhost:8080',
 ];
 
-module.exports = allowedOrigins;
+export default allowedOrigins;

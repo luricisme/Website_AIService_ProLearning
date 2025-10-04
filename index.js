@@ -1,10 +1,11 @@
-require('dotenv').config()
-const express = require("express");
-const cors = require('cors');
-const corsOptions = require('./config/corsOptions');
-const setupSwagger = require('./config/swaggerConfig');
-const morgan = require('morgan');
-const route = require('./routes/app.routes');
+import 'dotenv/config'; 
+import express from 'express';
+import cors from 'cors';
+import morgan from 'morgan';
+
+import corsOptions from './config/corsOptions.js';
+import setupSwagger from './config/swaggerConfig.js';
+import route from './routes/app.routes.js';
 
 const app = express();
 const ENV = process.env.NODE_ENV || "development";
@@ -32,7 +33,7 @@ route(app);
 // Start server
 app.listen(PORT, () => {
   if (ENV === "development") {
-    console.log(`❄️ Server is running on http://localhost:${PORT}`);
+    console.log(`❄️  Server is running on http://localhost:${PORT}`);
     console.log(`📌 Swagger UI available at http://localhost:${PORT}/api-docs`);
   } else {
     console.log(`🚀 Server is running in ${ENV} mode`);
