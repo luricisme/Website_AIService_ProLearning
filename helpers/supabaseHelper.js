@@ -1,4 +1,5 @@
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
+
 import { createClient } from "@supabase/supabase-js";
 
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
@@ -45,6 +46,27 @@ export default class SupabaseHelper {
         } catch (error) {
             console.error("❌ Error adding documents to Supabase:", error);
             return { success: false, message: error.message };
+        }
+    }
+
+    async queryDocuments(queryText, noteId, k = 3) {
+        try {
+            const vectorStore = await SupabaseVectorStore.fromExistingIndex(
+                this.embeddings,
+                {
+                    client: this.supabaseClient,
+                    tableName: this.tableName,
+                }
+            );
+
+            const filter = { noteId: String(noteId) };
+
+            const results = await vectorStore.similaritySearch(queryText, k, filter);
+            console.log(`🔍 Found ${results.length} results for noteId=${noteId}`);
+            return results;
+        } catch (error) {
+            console.error("❌ Error querying documents:", error);
+            return [];
         }
     }
 }
