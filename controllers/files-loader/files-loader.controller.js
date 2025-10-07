@@ -1,12 +1,18 @@
 import { WebPDFLoader } from "@langchain/community/document_loaders/web/pdf";
+import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import SupabaseHelper from "../../helpers/supabaseHelper.js";
 
+import fs from "fs";
+import path from "path";
+
+// Here we handle: .txt, .pdf, .docx, .pptx
 class FilesLoaderController {
-    async pdfLoader(req, res) {
+    async fileLoader(req, res) {
         try {
-            
+
             const { noteId, fileName, fileUrl } = req.body;
+
             if (!noteId || !fileName || !fileUrl) {
                 return res.status(400).json({
                     success: false,
@@ -14,39 +20,64 @@ class FilesLoaderController {
                 });
             }
 
-            // TODO: Xử lý nhiều file ở đây sau
-            // 1. Load the PDF file
-            // Fix get direct PDF file URL: 
-            // https://support.cloudinary.com/hc/en-us/articles/360016480179-Why-are-PDF-or-ZIP-files-appearing-in-the-Media-Library-but-their-download-URLs-return-an-error
+            // Verify what type file is
+            const fileExt = fileName.split(".").pop().toLowerCase();
+            console.log("File extension: " + fileExt);
+
+            // Read file from URL
             const response = await fetch(fileUrl);
             const arrayBuffer = await response.arrayBuffer();
-            const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-            const loader = new WebPDFLoader(blob);
+
+            let loader;
+            let tempPath = '';
+            switch (fileExt) {
+                case "pdf":
+                    loader = new WebPDFLoader(new Blob([arrayBuffer], { type: "application/pdf" }));
+                    break;
+                case "docx":
+                    const tempDir = "./temp";
+                    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+                    tempPath = path.join(tempDir, `${Date.now()}_${fileName}`);
+                    fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
+                    loader = new DocxLoader(tempPath);
+                    break;
+                default:
+                    return res.status(400).json({
+                        success: false,
+                        message: `Unsupported file type: ${fileExt}`,
+                    });
+            } 
+
+            // Load and read
             const docs = await loader.load();
-
-            let pdfTextContent = '';
-
+            let fileContent = '';
             docs.forEach(doc => {
-                pdfTextContent = pdfTextContent + doc.pageContent;
+                fileContent = fileContent + doc.pageContent;
             });
+            // console.log("File content: " + fileContent);
 
             // 2. Split the text into small chunks
             const splitter = new RecursiveCharacterTextSplitter({
                 chunkSize: 100,
                 chunkOverlap: 20,
             });
-            const output = await splitter.createDocuments([pdfTextContent]);
+            const output = await splitter.createDocuments([fileContent]);
 
             let splitterList = [];
             output.forEach(doc => {
                 splitterList.push(doc.pageContent)
             });
+            // console.log("Splitter List: " + splitterList);
 
             const supabaseHelper = new SupabaseHelper();
             await supabaseHelper.addDocuments(splitterList, {
                 noteId,
                 fileName,
             });
+
+            // Delete temp file
+            console.log("Temp path: " + tempPath);
+            if (fileExt === "docx") fs.unlinkSync(tempPath);
 
             return res.status(200).json({
                 success: true,

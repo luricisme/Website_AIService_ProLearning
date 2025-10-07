@@ -3,7 +3,7 @@ import filesLoaderController from '../../controllers/files-loader/files-loader.c
 
 const router = express.Router();
 
-router.get('/pdf', filesLoaderController.pdfLoader);
+router.get('/all', filesLoaderController.fileLoader);
 
 export default router;
 
