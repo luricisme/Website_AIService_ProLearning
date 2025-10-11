@@ -4,7 +4,7 @@ import aiHelper from "../../helpers/AIHelper.js";
 class TakeNotesController {
     async explainWithAI(req, res) {
         const { queryText, noteId } = req.body;
-        console.log("Query text " + queryText);
+        // console.log("Query text " + queryText);
 
         const results = await supabaseHelper.queryDocuments(queryText, noteId);
 

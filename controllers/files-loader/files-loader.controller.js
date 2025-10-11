@@ -40,7 +40,7 @@ class FilesLoaderController {
                 tempPath = path.join(tempDir, `${Date.now()}_${fileName}`);
                 fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
 
-                if (fileExt == "docx") {
+                if (fileExt === "docx") {
                     loader = new DocxLoader(tempPath);
                 } else if (fileExt === "txt") {
                     loader = new TextLoader(tempPath);

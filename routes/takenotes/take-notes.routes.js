@@ -3,7 +3,7 @@ import takeNotesController from '../../controllers/takenotes/take-notes.controll
 
 const router = express.Router();
 
-router.get('/explain', takeNotesController.explainWithAI);
+router.post('/explain', takeNotesController.explainWithAI);
 
 export default router;
 
