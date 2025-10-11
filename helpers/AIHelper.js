@@ -2,13 +2,19 @@ import {
   GoogleGenAI,
 } from '@google/genai';
 
-export default class AIHelper {
+class AIHelper {
   constructor() {
+    if (AIHelper.instance) {
+      return AIHelper.instance;
+    }
+
     this.ai = new GoogleGenAI({
       apiKey: process.env.GOOGLE_API_KEY,
     });
 
     this.model = 'gemini-2.0-flash';
+
+    AIHelper.instance = this;
   }
 
   async generateText(prompt) {
@@ -31,3 +37,8 @@ export default class AIHelper {
     return text.trim();
   }
 }
+
+const instance = new AIHelper();
+Object.freeze(instance);
+
+export default instance;

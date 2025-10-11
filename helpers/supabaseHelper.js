@@ -6,8 +6,12 @@ import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { TaskType } from "@google/generative-ai";
 
 // https://js.langchain.com/docs/integrations/vectorstores/supabase/
-export default class SupabaseHelper {
+class SupabaseHelper {
     constructor() {
+        if (SupabaseHelper.instance) {
+            return SupabaseHelper.instance;
+        }
+
         this.supabaseClient = createClient(
             process.env.SUPABASE_URL,
             process.env.SUPABASE_PRIVATE_KEY
@@ -19,6 +23,8 @@ export default class SupabaseHelper {
         });
 
         this.tableName = "documents";
+
+        SupabaseHelper.instance = this;
     }
 
     /**
@@ -70,3 +76,7 @@ export default class SupabaseHelper {
         }
     }
 }
+
+const instance = new SupabaseHelper();
+Object.freeze(instance);
+export default instance;

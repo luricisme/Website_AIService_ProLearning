@@ -1,16 +1,18 @@
 import { WebPDFLoader } from "@langchain/community/document_loaders/web/pdf";
 import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
+import { PPTXLoader } from "@langchain/community/document_loaders/fs/pptx";
+import { TextLoader } from "langchain/document_loaders/fs/text";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
-import SupabaseHelper from "../../helpers/supabaseHelper.js";
+import supabaseHelper from "../../helpers/supabaseHelper.js";
 
 import fs from "fs";
 import path from "path";
 
 // Here we handle: .txt, .pdf, .docx, .pptx
 class FilesLoaderController {
+
     async fileLoader(req, res) {
         try {
-
             const { noteId, fileName, fileUrl } = req.body;
 
             if (!noteId || !fileName || !fileUrl) {
@@ -29,24 +31,28 @@ class FilesLoaderController {
             const arrayBuffer = await response.arrayBuffer();
 
             let loader;
+            const tempDir = "./temp";
             let tempPath = '';
-            switch (fileExt) {
-                case "pdf":
-                    loader = new WebPDFLoader(new Blob([arrayBuffer], { type: "application/pdf" }));
-                    break;
-                case "docx":
-                    const tempDir = "./temp";
-                    if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
-                    tempPath = path.join(tempDir, `${Date.now()}_${fileName}`);
-                    fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
+            if (fileExt === "pdf") {
+                loader = new WebPDFLoader(new Blob([arrayBuffer], { type: "application/pdf" }));
+            } else if (fileExt === "docx" || fileExt === "txt" || fileExt === "pptx") {
+                if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+                tempPath = path.join(tempDir, `${Date.now()}_${fileName}`);
+                fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
+
+                if (fileExt == "docx") {
                     loader = new DocxLoader(tempPath);
-                    break;
-                default:
-                    return res.status(400).json({
-                        success: false,
-                        message: `Unsupported file type: ${fileExt}`,
-                    });
-            } 
+                } else if (fileExt === "txt") {
+                    loader = new TextLoader(tempPath);
+                } else if(fileExt === "pptx"){
+                    loader = new PPTXLoader(tempPath);
+                }
+            } else {
+                return res.status(400).json({
+                    success: false,
+                    message: `Unsupported file type: ${fileExt}`,
+                });
+            }
 
             // Load and read
             const docs = await loader.load();
@@ -68,16 +74,17 @@ class FilesLoaderController {
                 splitterList.push(doc.pageContent)
             });
             // console.log("Splitter List: " + splitterList);
-
-            const supabaseHelper = new SupabaseHelper();
+            
             await supabaseHelper.addDocuments(splitterList, {
                 noteId,
                 fileName,
             });
 
             // Delete temp file
-            console.log("Temp path: " + tempPath);
-            if (fileExt === "docx") fs.unlinkSync(tempPath);
+            if (tempPath !== '') {
+                console.log("Temp path: " + tempPath);
+                fs.unlinkSync(tempPath);
+            }
 
             return res.status(200).json({
                 success: true,

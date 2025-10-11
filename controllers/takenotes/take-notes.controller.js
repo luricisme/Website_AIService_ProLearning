@@ -1,12 +1,11 @@
-import SupabaseHelper from "../../helpers/supabaseHelper.js";
-import AIHelper from "../../helpers/AIHelper.js";
+import supabaseHelper from "../../helpers/supabaseHelper.js";
+import aiHelper from "../../helpers/AIHelper.js";
 
 class TakeNotesController {
     async explainWithAI(req, res) {
         const { queryText, noteId } = req.body;
         console.log("Query text " + queryText);
 
-        const supabaseHelper = new SupabaseHelper();
         const results = await supabaseHelper.queryDocuments(queryText, noteId);
 
         let allUnformattedAns = '';
@@ -14,11 +13,22 @@ class TakeNotesController {
             allUnformattedAns += item.pageContent;
         });
 
-        const PROMPT = "For question: " + queryText + " and with the given content as answer, please give appropriate answer in HTML format. The answer content is: " + allUnformattedAns;
+        const PROMPT = `
+        You are an assistant that explains highlighted text from user notes.
 
-        console.log("PROMPT: " + PROMPT);
+        ### Context:
+        ${allUnformattedAns}
 
-        const aiHelper = new AIHelper();
+        ### Task:
+        Explain the following text briefly and clearly:
+        "${queryText}"
+
+        - Use HTML formatting in your response (e.g. <p>, <strong>, <em>).
+        - Keep your explanation under 80 words.
+        - Avoid repeating the question.
+        - Be concise and direct.
+        `;
+        // console.log("PROMPT: " + PROMPT);
 
         const answer = await aiHelper.generateText(PROMPT);
 
