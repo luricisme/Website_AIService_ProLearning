@@ -13,18 +13,14 @@ class FilesLoaderController {
 
     async fileLoader(req, res) {
         try {
-            const { noteId, fileName, fileUrl } = req.body;
+            const { noteDocsId, fileName, fileUrl, extension, noteId } = req.body;
 
-            if (!noteId || !fileName || !fileUrl) {
+            if (!noteDocsId || !fileName || !fileUrl || !extension || !noteId) {
                 return res.status(400).json({
                     success: false,
                     message: "Missing metadata",
                 });
             }
-
-            // Verify what type file is
-            const fileExt = fileName.split(".").pop().toLowerCase();
-            console.log("File extension: " + fileExt);
 
             // Read file from URL
             const response = await fetch(fileUrl);
@@ -33,24 +29,24 @@ class FilesLoaderController {
             let loader;
             const tempDir = "./temp";
             let tempPath = '';
-            if (fileExt === "pdf") {
+            if (extension === "pdf") {
                 loader = new WebPDFLoader(new Blob([arrayBuffer], { type: "application/pdf" }));
-            } else if (fileExt === "docx" || fileExt === "txt" || fileExt === "pptx") {
+            } else if (extension === "docx" || extension === "txt" || extension === "pptx") {
                 if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
                 tempPath = path.join(tempDir, `${Date.now()}_${fileName}`);
                 fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
 
-                if (fileExt === "docx") {
+                if (extension === "docx") {
                     loader = new DocxLoader(tempPath);
-                } else if (fileExt === "txt") {
+                } else if (extension === "txt") {
                     loader = new TextLoader(tempPath);
-                } else if(fileExt === "pptx"){
+                } else if(extension === "pptx"){
                     loader = new PPTXLoader(tempPath);
                 }
             } else {
                 return res.status(400).json({
                     success: false,
-                    message: `Unsupported file type: ${fileExt}`,
+                    message: `Unsupported file type: ${extension}`,
                 });
             }
 
@@ -76,8 +72,9 @@ class FilesLoaderController {
             // console.log("Splitter List: " + splitterList);
             
             await supabaseHelper.addDocuments(splitterList, {
-                noteId,
+                noteDocsId,
                 fileName,
+                noteId,
             });
 
             // Delete temp file
