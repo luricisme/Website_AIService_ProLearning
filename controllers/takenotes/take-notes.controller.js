@@ -38,6 +38,34 @@ class TakeNotesController {
             data: answer
         });
     }
+
+    async summaryFileWithAI(req, res) {
+        try {
+            const { fileUrl, extension } = req.body;
+
+            if (!fileUrl || !extension) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Missing metadata",
+                });
+            }
+
+            const data = await aiHelper.summarizeTextByChain(fileUrl, extension);
+
+            return res.status(200).json({
+                success: true,
+                message: "Summarize file successfully",
+                data: data,
+            });
+        } catch (error) {
+            console.error("Error summarizing file:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Failed to summarize file",
+                error: error.message,
+            });
+        }
+    }
 }
 
 export default new TakeNotesController();

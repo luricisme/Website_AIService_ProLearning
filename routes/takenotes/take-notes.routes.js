@@ -5,5 +5,7 @@ const router = express.Router();
 
 router.post('/explain', takeNotesController.explainWithAI);
 
+router.post('/summarize', takeNotesController.summaryFileWithAI);
+
 export default router;
 
