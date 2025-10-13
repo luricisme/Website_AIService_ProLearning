@@ -41,9 +41,9 @@ class TakeNotesController {
 
     async summaryFileWithAI(req, res) {
         try {
-            const { fileUrl, extension } = req.body;
+            const { noteDocsId, fileUrl, extension } = req.body;
 
-            if (!fileUrl || !extension) {
+            if (!noteDocsId || !fileUrl || !extension) {
                 return res.status(400).json({
                     success: false,
                     message: "Missing metadata",
