@@ -23,7 +23,9 @@ class TakeNotesController {
         Explain the following text briefly and clearly:
         "${queryText}"
 
-        - Use HTML formatting in your response (e.g. <p>, <strong>, <em>).
+        Formatting rules:
+        - Use **only** the following HTML tags: <p>, <strong>, <b>, <em>, <i>.
+        - Do not use any other HTML tags (no <div>, <span>, <ul>, etc.).
         - Keep your explanation under 80 words.
         - Avoid repeating the question.
         - Be concise and direct.

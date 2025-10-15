@@ -61,9 +61,20 @@ class AIHelper {
     const docs = await this.loadFile(fileUrl, extension);
 
     // Define prompt
-    const prompt = PromptTemplate.fromTemplate(
-      "Summarize the main themes in these retrieved docs: {context}"
-    );
+    const prompt = PromptTemplate.fromTemplate(`
+      You are an assistant that summarizes documents.
+
+      ### Task:
+      Summarize the main themes in the following documents clearly and concisely:
+      {context}
+
+      ### Formatting rules:
+      - Use only these HTML tags: <p>, <strong>, <b>, <em>, <i>.
+      - Do not use any other HTML tags (no <div>, <span>, <ul>, <ol>, <li>, <table>, etc.).
+      - Do not include code block markers like \`\`\`html or \`\`\`.
+      - Keep the summary under 150 words.
+      - Write in a natural, readable tone.
+    `);
 
     // Instantiate
     const chain = await createStuffDocumentsChain({
@@ -72,9 +83,11 @@ class AIHelper {
       prompt,
     });
 
-    const result = await chain.invoke({ context: docs });
-    console.log("Result: " + result);
+    let result = await chain.invoke({ context: docs });
+    result = result.replace(/```html|```/gi, "").trim();
+    result = result.replace(/<(?!\/?(p|strong|b|em|i)\b)[^>]*>/gi, "");
 
+    console.log("Result:", result);
     return result;
   }
 
