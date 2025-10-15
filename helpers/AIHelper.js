@@ -1,7 +1,4 @@
 import { GoogleGenAI, } from '@google/genai';
-import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { pull } from "langchain/hub";
-import { TokenTextSplitter } from "@langchain/textsplitters";
 
 import { WebPDFLoader } from "@langchain/community/document_loaders/web/pdf";
 import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
@@ -13,6 +10,8 @@ import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { PromptTemplate } from "@langchain/core/prompts";
 
+import fs from "fs";
+import path from "path";
 
 class AIHelper {
   constructor() {
@@ -57,8 +56,8 @@ class AIHelper {
     return text.trim();
   }
 
-  async summarizeTextByChain(fileUrl, extension) {
-    const docs = await this.loadFile(fileUrl, extension);
+  async summarizeTextByChain(noteDocsId, fileUrl, extension) {
+    const docs = await this.loadFile(noteDocsId, fileUrl, extension);
 
     // Define prompt
     const prompt = PromptTemplate.fromTemplate(`
@@ -91,7 +90,7 @@ class AIHelper {
     return result;
   }
 
-  async loadFile(fileUrl, extension) {
+  async loadFile(noteDocsId, fileUrl, extension) {
     // Read file from URL
     const response = await fetch(fileUrl);
     const arrayBuffer = await response.arrayBuffer();
@@ -103,7 +102,7 @@ class AIHelper {
       loader = new WebPDFLoader(new Blob([arrayBuffer], { type: "application/pdf" }));
     } else if (extension === "docx" || extension === "txt" || extension === "pptx") {
       if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
-      tempPath = path.join(tempDir, `${Date.now()}_${fileName}`);
+      tempPath = path.join(tempDir, `${Date.now()}_${noteDocsId}`);
       fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
 
       if (extension === "docx") {

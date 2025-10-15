@@ -52,7 +52,7 @@ class TakeNotesController {
                 });
             }
 
-            const data = await aiHelper.summarizeTextByChain(fileUrl, extension);
+            const data = await aiHelper.summarizeTextByChain(noteDocsId, fileUrl, extension);
 
             return res.status(200).json({
                 success: true,
