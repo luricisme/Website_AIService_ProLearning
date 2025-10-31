@@ -1,7 +1,7 @@
 import supabaseHelper from "../../helpers/supabaseHelper.js";
 import aiHelper from "../../helpers/AIHelper.js";
 
-class TakeNotesController {
+class NotesController {
     async explainWithAI(req, res) {
         const { noteId, queryText } = req.body;
         // console.log("Query text " + queryText);
@@ -70,4 +70,4 @@ class TakeNotesController {
     }
 }
 
-export default new TakeNotesController();
+export default new NotesController();

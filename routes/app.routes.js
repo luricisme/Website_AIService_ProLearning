@@ -1,9 +1,9 @@
-import takeNotesRoutes from './takenotes/index.routes.js';
 import filesLoaderRoutes from './files-loader/index.routes.js';
+import notesRoutes from './notes/index.routes.js';
 
 function route(app){
     app.use('/', filesLoaderRoutes);
-    app.use('/', takeNotesRoutes);
+    app.use('/', notesRoutes);
 }
 
 export default route;
