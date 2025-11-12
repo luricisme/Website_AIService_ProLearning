@@ -13,26 +13,7 @@ class NotesController {
             allUnformattedAns += item.pageContent;
         });
 
-        const PROMPT = `
-        You are an assistant that explains highlighted text from user notes.
-
-        ### Context:
-        ${allUnformattedAns}
-
-        ### Task:
-        Explain the following text briefly and clearly:
-        "${queryText}"
-
-        Formatting rules:
-        - Use **only** the following HTML tags: <p>, <strong>, <b>, <em>, <i>.
-        - Do not use any other HTML tags (no <div>, <span>, <ul>, etc.).
-        - Keep your explanation under 80 words.
-        - Avoid repeating the question.
-        - Be concise and direct.
-        `;
-        // console.log("PROMPT: " + PROMPT);
-
-        const answer = await aiHelper.generateText(PROMPT);
+        const answer = await aiHelper.generateText(allUnformattedAns, queryText);
 
         return res.status(200).json({
             success: true,

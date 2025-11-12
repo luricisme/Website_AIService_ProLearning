@@ -9,49 +9,72 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { PromptTemplate } from "@langchain/core/prompts";
+import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 import fs from "fs";
-import path from "path";
+import path, { format } from "path";
 
 class AIHelper {
   constructor() {
+    // Use Singleton Pattern
     if (AIHelper.instance) {
       return AIHelper.instance;
     }
 
     this.model = 'gemini-2.0-flash';
 
-    // SDK gốc
+    // Root SDK
     this.ai = new GoogleGenAI({
       apiKey: process.env.GOOGLE_API_KEY,
     });
 
-    // LangChain Wrapper
+    // Wrapper of LangChain
     this.llm = new ChatGoogleGenerativeAI({
       model: this.model,
       temperature: 0,
       apiKey: process.env.GOOGLE_API_KEY,
     });
 
+    // Temp dir to handle load file
+    this.tempDir = './temp';
+    if (!fs.existsSync(this.tempDir)) fs.mkdirSync(this.tempDir);
+
     AIHelper.instance = this;
   }
 
-  async generateText(prompt) {
-    const contents = [
-      {
-        role: 'user',
-        parts: [{ text: prompt }],
-      },
+  async generateText(allUnformattedAns, queryText) {
+    // Define prompt
+    const prompt = PromptTemplate.fromTemplate(`
+      You are an assistant that explains highlighted text from user notes.
+      ### Context:
+      ${allUnformattedAns}
+
+      ### Task:
+      Explain the following text briefly and clearly:
+      "${queryText}"
+
+      Formatting rules:
+      - Use **only** the following HTML tags: <p>, <strong>, <b>, <em>, <i>.
+      - Do not use any other HTML tags (no <div>, <span>, <ul>, etc.).
+      - Keep your explanation under 80 words.
+      - Avoid repeating the question.
+      - Be concise and direct.
+      `);
+
+    const formattedPrompt = await prompt.format({
+      allUnformattedAns,
+      queryText,
+    });
+    // console.log("FORMATTED PROMPT: ", formattedPrompt);
+
+    const messages = [
+      new SystemMessage("You are a helpful assistant."),
+      new HumanMessage(formattedPrompt),
     ];
 
-    const response = await this.ai.models.generateContent({
-      model: this.model,
-      contents,
-    });
+    const response = await this.llm.generate([messages]);
 
-    console.log("Gemini full response:", JSON.stringify(response, null, 2));
-
-    const text = response?.candidates?.[0]?.content?.parts?.[0]?.text || '⚠️ No text returned';
+    const text = response.generations[0][0].text || "⚠️ No text returned";
 
     return text.trim();
   }
@@ -86,7 +109,7 @@ class AIHelper {
     result = result.replace(/```html|```/gi, "").trim();
     result = result.replace(/<(?!\/?(p|strong|b|em|i)\b)[^>]*>/gi, "");
 
-    console.log("Result:", result);
+    // console.log("Summarize File: ", result);
     return result;
   }
 
@@ -96,13 +119,11 @@ class AIHelper {
     const arrayBuffer = await response.arrayBuffer();
 
     let loader;
-    const tempDir = "./temp";
     let tempPath = '';
     if (extension === "pdf") {
       loader = new WebPDFLoader(new Blob([arrayBuffer], { type: "application/pdf" }));
     } else if (extension === "docx" || extension === "txt" || extension === "pptx") {
-      if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
-      tempPath = path.join(tempDir, `${Date.now()}_${noteDocsId}`);
+      tempPath = path.join(this.tempDir, `${Date.now()}_${noteDocsId}`);
       fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
 
       if (extension === "docx") {
@@ -112,6 +133,7 @@ class AIHelper {
       } else if (extension === "pptx") {
         loader = new PPTXLoader(tempPath);
       }
+
     } else {
       return res.status(400).json({
         success: false,
@@ -119,15 +141,8 @@ class AIHelper {
       });
     }
 
-    // Load and read
     const docs = await loader.load();
 
-    // let fileContent = '';
-    // docs.forEach(doc => {
-    //   fileContent = fileContent + doc.pageContent;
-    // });
-
-    // return fileContent;
     return docs;
   }
 }
