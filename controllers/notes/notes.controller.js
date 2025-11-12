@@ -8,6 +8,47 @@ class NotesController {
             const { noteId, queryText } = req.body;
 
             // Validate input
+            if (!noteId || !queryText) {
+                return res.status(400).json({
+                    success: false,
+                    message: "noteId và queryText là bắt buộc.",
+                });
+            }
+
+            // Query context từ Supabase
+            const results = await supabaseHelper.queryDocuments(queryText, noteId);
+
+            // Gộp nội dung làm context
+            let context = "";
+            if (results && results.length > 0) {
+                context = results.map((item) => item.pageContent).join("\n\n");
+            } else {
+                context = "No relevant context found.";
+            }
+
+            // Gọi AI Helper trực tiếp
+            const explanation = await aiHelper.generateText(context, queryText);
+
+            return res.status(200).json({
+                success: true,
+                message: "Giải thích thành công.",
+                data: explanation,
+            });
+        } catch (error) {
+            console.error("Explain with AI error:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Lỗi khi giải thích đoạn text.",
+                error: error.message,
+            });
+        }
+    }
+
+    async explainWithAIAgent(req, res) {
+        try {
+            const { noteId, queryText } = req.body;
+
+            // Validate input
             if (!noteId) {
                 return res.status(400).json({
                     success: false,
@@ -76,6 +117,52 @@ class NotesController {
                 message: "Summarize file successfully",
                 data: data,
             });
+        } catch (error) {
+            console.error("Error summarizing file:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Failed to summarize file",
+                error: error.message,
+            });
+        }
+    }
+
+    async summaryFileWithAIAgent(req, res) {
+        try {
+            const { noteDocsId, fileUrl, extension } = req.body;
+
+            // Validate input
+            if (!noteDocsId || !fileUrl || !extension) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Missing required fields: noteDocsId, fileUrl, extension",
+                });
+            }
+
+            // Use agent
+            const input = `Please summarize this ${extension.toUpperCase()} document.
+                File URL: ${fileUrl}
+                Document ID: ${noteDocsId}
+                Extension: ${extension}
+
+                Use the summarize_document tool to process this file.`;
+
+            const result = await aiAgent.run(input);
+
+            if (!result.success) {
+                return res.status(500).json({
+                    success: false,
+                    message: "Failed to summarize file",
+                    error: result.error,
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: "Summarize file successfully",
+                data: result.output,
+            });
+
         } catch (error) {
             console.error("Error summarizing file:", error);
             return res.status(500).json({

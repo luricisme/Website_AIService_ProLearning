@@ -114,6 +114,7 @@ class AIHelper {
   }
 
   async loadFile(noteDocsId, fileUrl, extension) {
+    // console.log("Extension: ", extension);
     const supportedExtensions = ["pdf", "docx", "txt", "pptx"];
 
     // Validate extension

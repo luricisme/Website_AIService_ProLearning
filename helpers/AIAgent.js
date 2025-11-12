@@ -26,21 +26,20 @@ class AIAgent {
     }
 
     async initAgent() {
-        if (this.agentExecutor) return;
+        if (this.agentExecutor) return this.agentExecutor;
 
         // Tool 01: Summarize file
         const summarizeTool = new DynamicStructuredTool({
             name: "summarize_document",
             description: "Summarize a document from URL. Supports PDF, DOCX, TXT, PPTX files.",
             schema: z.object({
-                fileUrl: z.string().describe("The URL of the document to summarize"),
-                extension: z.enum(["pdf", "docx", "txt", "pptx"]).describe("File extension"),
-                noteDocsId: z.string().optional().describe("Optional document ID, will auto-generate if not provided"),
+                fileUrl: z.string().describe("The URL of the document to summarize (required)"),
+                extension: z.enum(["pdf", "docx", "txt", "pptx"]).describe("File extension (required)"),
+                noteDocsId: z.string().min(1).describe("Document ID (required)"),
             }),
             func: async ({ fileUrl, extension, noteDocsId }) => {
                 try {
-                    const docId = noteDocsId || `doc_${Date.now()}`;
-                    const summary = await this.aiHelper.summarizeTextByChain(docId, fileUrl, extension);
+                    const summary = await this.aiHelper.summarizeTextByChain(noteDocsId, fileUrl, extension);
                     return `✅ Document summarized successfully:\n\n${summary}`;
                 } catch (error) {
                     return `❌ Error summarizing document: ${error.message}`;
