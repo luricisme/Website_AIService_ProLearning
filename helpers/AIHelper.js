@@ -1,4 +1,4 @@
-import { GoogleGenAI, } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 import { WebPDFLoader } from "@langchain/community/document_loaders/web/pdf";
 import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
@@ -12,7 +12,7 @@ import { PromptTemplate } from "@langchain/core/prompts";
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
 import fs from "fs";
-import path, { format } from "path";
+import path from "path";
 
 class AIHelper {
   constructor() {
@@ -24,7 +24,7 @@ class AIHelper {
     this.model = 'gemini-2.0-flash';
 
     // Root SDK
-    this.ai = new GoogleGenAI({
+    this.ai = new GoogleGenerativeAI({
       apiKey: process.env.GOOGLE_API_KEY,
     });
 
@@ -47,11 +47,11 @@ class AIHelper {
     const prompt = PromptTemplate.fromTemplate(`
       You are an assistant that explains highlighted text from user notes.
       ### Context:
-      ${allUnformattedAns}
+      {allUnformattedAns}
 
       ### Task:
       Explain the following text briefly and clearly:
-      "${queryText}"
+      "{queryText}"
 
       Formatting rules:
       - Use **only** the following HTML tags: <p>, <strong>, <b>, <em>, <i>.
@@ -72,9 +72,9 @@ class AIHelper {
       new HumanMessage(formattedPrompt),
     ];
 
-    const response = await this.llm.generate([messages]);
+    const response = await this.llm.invoke(messages);
 
-    const text = response.generations[0][0].text || "⚠️ No text returned";
+    const text = response.content || "⚠️ No text returned";
 
     return text.trim();
   }
@@ -114,36 +114,62 @@ class AIHelper {
   }
 
   async loadFile(noteDocsId, fileUrl, extension) {
-    // Read file from URL
+    const supportedExtensions = ["pdf", "docx", "txt", "pptx"];
+
+    // Validate extension
+    if (!supportedExtensions.includes(extension)) {
+      throw new Error(`Unsupported file type: ${extension}. Supported: ${supportedExtensions.join(", ")}`);
+    }
+
+    // Fetch file from URL
     const response = await fetch(fileUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file: ${response.statusText}`);
+    }
+
     const arrayBuffer = await response.arrayBuffer();
 
     let loader;
-    let tempPath = '';
-    if (extension === "pdf") {
-      loader = new WebPDFLoader(new Blob([arrayBuffer], { type: "application/pdf" }));
-    } else if (extension === "docx" || extension === "txt" || extension === "pptx") {
-      tempPath = path.join(this.tempDir, `${Date.now()}_${noteDocsId}`);
-      fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
+    let tempPath = null;
 
-      if (extension === "docx") {
-        loader = new DocxLoader(tempPath);
-      } else if (extension === "txt") {
-        loader = new TextLoader(tempPath);
-      } else if (extension === "pptx") {
-        loader = new PPTXLoader(tempPath);
+    try {
+      if (extension === "pdf") {
+        // PDF can be loaded directly from Blob
+        loader = new WebPDFLoader(
+          new Blob([arrayBuffer], { type: "application/pdf" })
+        );
+      } else {
+        // Other formats need temporary file
+        tempPath = path.join(
+          this.tempDir,
+          `${Date.now()}_${noteDocsId}.${extension}`
+        );
+        fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
+
+        // Select appropriate loader
+        const loaders = {
+          docx: DocxLoader,
+          txt: TextLoader,
+          pptx: PPTXLoader,
+        };
+
+        const LoaderClass = loaders[extension];
+        loader = new LoaderClass(tempPath);
       }
 
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: `Unsupported file type: ${extension}`,
-      });
+      const docs = await loader.load();
+      return docs;
+
+    } finally {
+      // Clean up temporary file
+      if (tempPath && fs.existsSync(tempPath)) {
+        try {
+          fs.unlinkSync(tempPath);
+        } catch (error) {
+          console.error(`Failed to delete temp file ${tempPath}:`, error);
+        }
+      }
     }
-
-    const docs = await loader.load();
-
-    return docs;
   }
 }
 

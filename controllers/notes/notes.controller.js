@@ -1,25 +1,61 @@
 import supabaseHelper from "../../helpers/supabaseHelper.js";
 import aiHelper from "../../helpers/AIHelper.js";
+import aiAgent from "../../helpers/AIAgent.js";
 
 class NotesController {
     async explainWithAI(req, res) {
-        const { noteId, queryText } = req.body;
-        // console.log("Query text " + queryText);
+        try {
+            const { noteId, queryText } = req.body;
 
-        const results = await supabaseHelper.queryDocuments(queryText, noteId);
+            // Validate input
+            if (!noteId) {
+                return res.status(400).json({
+                    success: false,
+                    message: "noteId are required",
+                });
+            }
 
-        let allUnformattedAns = '';
-        results && results.forEach(item => {
-            allUnformattedAns += item.pageContent;
-        });
+            // Query documents from Supabase
+            const results = await supabaseHelper.queryDocuments(queryText, noteId);
 
-        const answer = await aiHelper.generateText(allUnformattedAns, queryText);
+            // Combine context
+            let context = '';
+            if (results && results.length > 0) {
+                context = results.map(item => item.pageContent).join('\n\n');
+            }
 
-        return res.status(200).json({
-            success: true,
-            message: "Query successfully",
-            data: answer
-        });
+            // Use agent to explain
+            const input = `Context from user notes:
+                ${context}
+
+                Please explain the following text briefly and clearly:
+                "${queryText}"
+
+                Keep your explanation under 80 words and use only HTML tags: <p>, <strong>, <b>, <em>, <i>.`;
+
+            const result = await aiAgent.run(input);
+
+            if (!result.success) {
+                return res.status(500).json({
+                    success: false,
+                    message: "Failed to generate explanation",
+                    error: result.error,
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: "Query successfully",
+                data: result.output,
+            });
+
+        } catch (error) {
+            console.error("Explain with AI error:", error);
+            return res.status(500).json({
+                success: false,
+                message: error.message,
+            });
+        }
     }
 
     async summaryFileWithAI(req, res) {
