@@ -42,7 +42,8 @@ class AIHelper {
     AIHelper.instance = this;
   }
 
-  async generateText(allUnformattedAns, queryText) {
+  // NOTE
+  async explainNote(allUnformattedAns, queryText) {
     // Define prompt
     const prompt = PromptTemplate.fromTemplate(`
       You are an assistant that explains highlighted text from user notes.
@@ -79,7 +80,7 @@ class AIHelper {
     return text.trim();
   }
 
-  async summarizeTextByChain(noteDocsId, fileUrl, extension) {
+  async summarizeNoteByChain(noteDocsId, fileUrl, extension) {
     const docs = await this.loadFile(noteDocsId, fileUrl, extension);
 
     // Define prompt
@@ -113,7 +114,54 @@ class AIHelper {
     return result;
   }
 
-  async loadFile(noteDocsId, fileUrl, extension) {
+  // FLASHCARD
+  async generateFlashcard(flDocsId, fileUrl, extension) {
+    const docs = await this.loadFile(flDocsId, fileUrl, extension);
+
+    // Define prompt
+    const prompt = PromptTemplate.fromTemplate(`
+      You are an assistant that extracts key concepts from a document and converts them into flashcards.
+
+      ### Task:
+      Read the entire document below and extract ALL important concepts and definitions.
+      Your flashcards MUST fully represent the document's content with no missing key ideas.
+      
+      Return them strictly in the following format:
+      Word1|Definition1;Word2|Definition2;Word3|Definition3
+
+      ### Hard rules:
+      - Output ONLY the flashcard pairs in the exact format above.
+      - No explanations, no notes, no extra text.
+      - No markdown, no HTML, no quotes.
+      - Each "Word" is a meaningful concept from the document.
+      - Each "Definition" must accurately and completely reflect the intended meaning from the file.
+      - Include as many flashcards as needed to cover the entire document. 
+      - Ensure the flashcards collectively represent **all key information** in the document.
+
+      ### Document:
+      {context}
+    `);
+
+    // Instantiate
+    const chain = await createStuffDocumentsChain({
+      llm: this.llm,
+      outputParser: new StringOutputParser(),
+      prompt,
+    });
+
+    let result = await chain.invoke({ context: docs });
+
+    result = result
+      .replace(/```[^`]*```/g, "") // remove fenced code blocks
+      .replace(/```/g, "")
+      .replace(/<[^>]*>/g, "") // remove any HTML if model produced
+      .trim();
+
+    // console.log("Summarize File: ", result);
+    return result;
+  }
+
+  async loadFile(docsId, fileUrl, extension) {
     // console.log("Extension: ", extension);
     const supportedExtensions = ["pdf", "docx", "txt", "pptx"];
 
@@ -132,7 +180,6 @@ class AIHelper {
 
     let loader;
     let tempPath = null;
-
     try {
       if (extension === "pdf") {
         // PDF can be loaded directly from Blob
@@ -143,7 +190,7 @@ class AIHelper {
         // Other formats need temporary file
         tempPath = path.join(
           this.tempDir,
-          `${Date.now()}_${noteDocsId}.${extension}`
+          `${Date.now()}_${docsId}.${extension}`
         );
         fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
 

@@ -1,6 +1,6 @@
 import supabaseHelper from "../../helpers/supabaseHelper.js";
 import aiHelper from "../../helpers/AIHelper.js";
-import aiAgent from "../../helpers/AIAgent.js";
+import noteAgent from "../../helpers/NoteAgent.js";
 
 class NotesController {
     async explainWithAI(req, res) {
@@ -27,7 +27,7 @@ class NotesController {
             }
 
             // Gọi AI Helper trực tiếp
-            const explanation = await aiHelper.generateText(context, queryText);
+            const explanation = await aiHelper.explainNote(context, queryText);
 
             return res.status(200).json({
                 success: true,
@@ -74,7 +74,7 @@ class NotesController {
 
                 Keep your explanation under 80 words and use only HTML tags: <p>, <strong>, <b>, <em>, <i>.`;
 
-            const result = await aiAgent.run(input);
+            const result = await noteAgent.run(input);
 
             if (!result.success) {
                 return res.status(500).json({
@@ -110,7 +110,7 @@ class NotesController {
                 });
             }
 
-            const data = await aiHelper.summarizeTextByChain(noteDocsId, fileUrl, extension);
+            const data = await aiHelper.summarizeNoteByChain(noteDocsId, fileUrl, extension);
 
             return res.status(200).json({
                 success: true,
@@ -147,7 +147,7 @@ class NotesController {
 
                 Use the summarize_document tool to process this file.`;
 
-            const result = await aiAgent.run(input);
+            const result = await noteAgent.run(input);
 
             if (!result.success) {
                 return res.status(500).json({

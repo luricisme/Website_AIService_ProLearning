@@ -39,10 +39,10 @@ class AIAgent {
             }),
             func: async ({ fileUrl, extension, noteDocsId }) => {
                 try {
-                    const summary = await this.aiHelper.summarizeTextByChain(noteDocsId, fileUrl, extension);
-                    return `✅ Document summarized successfully:\n\n${summary}`;
+                    const summary = await this.aiHelper.summarizeNoteByChain(noteDocsId, fileUrl, extension);
+                    return `🐻‍❄️ Document summarized successfully:\n\n${summary}`;
                 } catch (error) {
-                    return `❌ Error summarizing document: ${error.message}`;
+                    return `😡 Error summarizing document: ${error.message}`;
                 }
             },
         });
@@ -57,10 +57,10 @@ class AIAgent {
             }),
             func: async ({ context, queryText }) => {
                 try {
-                    const explanation = await this.aiHelper.generateText(context, queryText);
-                    return `✅ Explanation:\n\n${explanation}`;
+                    const explanation = await this.aiHelper.explainNote(context, queryText);
+                    return `🐻‍❄️ Explanation:\n\n${explanation}`;
                 } catch (error) {
-                    return `❌ Error explaining text: ${error.message}`;
+                    return `😡 Error explaining text: ${error.message}`;
                 }
             },
         });
