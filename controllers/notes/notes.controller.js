@@ -5,10 +5,10 @@ import noteAgent from "../../helpers/NoteAgent.js";
 class NotesController {
     async explainWithAI(req, res) {
         try {
-            const { noteId, queryText } = req.body;
+            const { noteId, queryText, lang } = req.body;
 
             // Validate input
-            if (!noteId || !queryText) {
+            if (!noteId || !queryText || !lang) {
                 return res.status(400).json({
                     success: false,
                     message: "Missing fields in payload",
@@ -27,15 +27,16 @@ class NotesController {
             }
 
             // Call ai model for explanation
-            const explanation = await aiHelper.explainNote(context, queryText);
+            const explanation = await aiHelper.explainNote(context, queryText, lang);
 
+            console.log("🐳 Explain with AI successfully");
             return res.status(200).json({
                 success: true,
                 message: "Explain successfully",
                 data: explanation,
             });
         } catch (error) {
-            console.error("Explain with AI error:", error);
+            console.error("😡 Explain with AI error:", error);
             return res.status(500).json({
                 success: false,
                 message: "Error explaining context",
@@ -101,24 +102,26 @@ class NotesController {
 
     async summaryFileWithAI(req, res) {
         try {
-            const { noteDocsId, fileUrl, extension } = req.body;
+            const { assetId, fileUrl } = req.body;
 
-            if (!noteDocsId || !fileUrl || !extension) {
+            if (!assetId || !fileUrl) {
                 return res.status(400).json({
                     success: false,
-                    message: "Missing metadata",
+                    message: "Missing fields in payload",
                 });
             }
 
-            const data = await aiHelper.summarizeNoteByChain(noteDocsId, fileUrl, extension);
+            const extension = fileUrl.split('.').pop().toLowerCase();
+            const data = await aiHelper.summarizeNoteByChain(assetId, fileUrl, extension);
 
+            console.log("🐳 Summarize file with AI successfully");
             return res.status(200).json({
                 success: true,
                 message: "Summarize file successfully",
                 data: data,
             });
         } catch (error) {
-            console.error("Error summarizing file:", error);
+            console.error("😡 Error summarizing file:", error);
             return res.status(500).json({
                 success: false,
                 message: "Failed to summarize file",

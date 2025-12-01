@@ -43,16 +43,16 @@ class AIHelper {
   }
 
   // NOTE
-  async explainNote(allUnformattedAns, queryText) {
+  async explainNote(allUnformattedAns, queryText, lang) {
     // Define prompt
     const prompt = PromptTemplate.fromTemplate(`
       You are an assistant that explains highlighted text from user notes.
-      ### Context:
+      ### Based on this information that queries from the documents:
       {allUnformattedAns}
 
       ### Task:
-      Explain the following text briefly and clearly:
-      "{queryText}"
+      Explain the following text briefly and clearly in {lang} language:
+      "{queryText}".
 
       Formatting rules:
       - Use **only** the following HTML tags: <p>, <strong>, <b>, <em>, <i>.
@@ -64,7 +64,8 @@ class AIHelper {
 
     const formattedPrompt = await prompt.format({
       allUnformattedAns,
-      queryText,
+      lang,
+      queryText
     });
     // console.log("FORMATTED PROMPT: ", formattedPrompt);
 
@@ -80,8 +81,8 @@ class AIHelper {
     return text.trim();
   }
 
-  async summarizeNoteByChain(noteDocsId, fileUrl, extension) {
-    const docs = await this.loadFile(noteDocsId, fileUrl, extension);
+  async summarizeNoteByChain(assetId, fileUrl, extension) {
+    const docs = await this.loadFile(assetId, fileUrl, extension);
 
     // Define prompt
     const prompt = PromptTemplate.fromTemplate(`
