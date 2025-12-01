@@ -5,10 +5,10 @@ import noteAgent from "../../helpers/NoteAgent.js";
 class NotesController {
     async explainWithAI(req, res) {
         try {
-            const { noteId, queryText, lang } = req.body;
+            const { noteId, queryText, lang = "en"} = req.body;
 
             // Validate input
-            if (!noteId || !queryText || !lang) {
+            if (!noteId || !queryText) {
                 return res.status(400).json({
                     success: false,
                     message: "Missing fields in payload",
@@ -102,7 +102,7 @@ class NotesController {
 
     async summaryFileWithAI(req, res) {
         try {
-            const { assetId, fileUrl } = req.body;
+            const { assetId, fileUrl, lang = "en", limit = 200} = req.body;
 
             if (!assetId || !fileUrl) {
                 return res.status(400).json({
@@ -112,7 +112,7 @@ class NotesController {
             }
 
             const extension = fileUrl.split('.').pop().toLowerCase();
-            const data = await aiHelper.summarizeNoteByChain(assetId, fileUrl, extension);
+            const data = await aiHelper.summarizeNoteByChain(assetId, fileUrl, extension, lang, limit);
 
             console.log("🐳 Summarize file with AI successfully");
             return res.status(200).json({

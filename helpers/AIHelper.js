@@ -81,7 +81,7 @@ class AIHelper {
     return text.trim();
   }
 
-  async summarizeNoteByChain(assetId, fileUrl, extension) {
+  async summarizeNoteByChain(assetId, fileUrl, extension, lang, limit) {
     const docs = await this.loadFile(assetId, fileUrl, extension);
 
     // Define prompt
@@ -89,14 +89,14 @@ class AIHelper {
       You are an assistant that summarizes documents.
 
       ### Task:
-      Summarize the main themes in the following documents clearly and concisely:
+      Summarize the main themes in the following documents clearly and concisely in {lang} language:
       {context}
 
       ### Formatting rules:
       - Use only these HTML tags: <p>, <strong>, <b>, <em>, <i>.
       - Do not use any other HTML tags (no <div>, <span>, <ul>, <ol>, <li>, <table>, etc.).
       - Do not include code block markers like \`\`\`html or \`\`\`.
-      - Keep the summary under 150 words.
+      - Keep the summary under {limit} words.
       - Write in a natural, readable tone.
     `);
 
@@ -107,7 +107,7 @@ class AIHelper {
       prompt,
     });
 
-    let result = await chain.invoke({ context: docs });
+    let result = await chain.invoke({ context: docs, lang: lang, limit: limit });
     result = result.replace(/```html|```/gi, "").trim();
     result = result.replace(/<(?!\/?(p|strong|b|em|i)\b)[^>]*>/gi, "");
 
