@@ -11,14 +11,14 @@ class NotesController {
             if (!noteId || !queryText) {
                 return res.status(400).json({
                     success: false,
-                    message: "noteId và queryText là bắt buộc.",
+                    message: "Missing fields in payload",
                 });
             }
 
-            // Query context từ Supabase
+            // Query context from Supabase
             const results = await supabaseHelper.queryDocuments(queryText, noteId);
 
-            // Gộp nội dung làm context
+            // Combine result 
             let context = "";
             if (results && results.length > 0) {
                 context = results.map((item) => item.pageContent).join("\n\n");
@@ -26,19 +26,19 @@ class NotesController {
                 context = "No relevant context found.";
             }
 
-            // Gọi AI Helper trực tiếp
+            // Call ai model for explanation
             const explanation = await aiHelper.explainNote(context, queryText);
 
             return res.status(200).json({
                 success: true,
-                message: "Giải thích thành công.",
+                message: "Explain successfully",
                 data: explanation,
             });
         } catch (error) {
             console.error("Explain with AI error:", error);
             return res.status(500).json({
                 success: false,
-                message: "Lỗi khi giải thích đoạn text.",
+                message: "Error explaining context",
                 error: error.message,
             });
         }

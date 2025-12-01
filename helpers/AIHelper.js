@@ -75,7 +75,7 @@ class AIHelper {
 
     const response = await this.llm.invoke(messages);
 
-    const text = response.content || "⚠️ No text returned";
+    const text = response.content || "No text returned";
 
     return text.trim();
   }
@@ -169,7 +169,7 @@ class AIHelper {
     if (!supportedExtensions.includes(extension)) {
       throw new Error(`Unsupported file type: ${extension}. Supported: ${supportedExtensions.join(", ")}`);
     }
-
+  
     // Fetch file from URL
     const response = await fetch(fileUrl);
     if (!response.ok) {

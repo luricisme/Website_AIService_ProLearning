@@ -13,83 +13,108 @@ class FilesLoaderController {
 
     async fileLoader(req, res) {
         try {
-            const { noteDocsId, fileName, fileUrl, extension, noteId } = req.body;
+            const { noteId, assetId, fileName, fileUrl } = req.body;
 
-            if (!noteDocsId || !fileName || !fileUrl || !extension || !noteId) {
+            // Validate required fields
+            if (!noteId || !assetId || !fileName || !fileUrl) {
                 return res.status(400).json({
                     success: false,
-                    message: "Missing metadata",
+                    message: "Missing fields in payload",
                 });
             }
 
-            // Read file from URL
+            // Extract file extension
+            const extension = fileUrl.split('.').pop().toLowerCase();
+            const supportedExtensions = ["pdf", "docx", "txt", "pptx"];
+
+            // Validate extension
+            if (!supportedExtensions.includes(extension)) {
+                throw new Error(
+                    `Unsupported file type: ${extension}. Supported: ${supportedExtensions.join(", ")}`
+                );
+            }
+
+            // Fetch file from URL
             const response = await fetch(fileUrl);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch file: ${response.statusText}`);
+            }
+
             const arrayBuffer = await response.arrayBuffer();
-
             let loader;
-            const tempDir = "./temp";
-            let tempPath = '';
-            if (extension === "pdf") {
-                loader = new WebPDFLoader(new Blob([arrayBuffer], { type: "application/pdf" }));
-            } else if (extension === "docx" || extension === "txt" || extension === "pptx") {
-                if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
-                tempPath = path.join(tempDir, `${Date.now()}_${fileName}`);
-                fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
+            const tempDir = './temp';
+            let tempPath = null;
 
-                if (extension === "docx") {
-                    loader = new DocxLoader(tempPath);
-                } else if (extension === "txt") {
-                    loader = new TextLoader(tempPath);
-                } else if(extension === "pptx"){
-                    loader = new PPTXLoader(tempPath);
+            try {
+                // Load file based on extension
+                if (extension === "pdf") {
+                    // PDF can be loaded directly from Blob
+                    loader = new WebPDFLoader(
+                        new Blob([arrayBuffer], { type: "application/pdf" })
+                    );
+                } else {
+                    // Other formats need temporary file
+                    if (!fs.existsSync(tempDir)) {
+                        fs.mkdirSync(tempDir, { recursive: true });
+                    }
+
+                    tempPath = path.join(
+                        tempDir,
+                        `${Date.now()}_${assetId}.${extension}`
+                    );
+                    fs.writeFileSync(tempPath, Buffer.from(arrayBuffer));
+
+                    // Select appropriate loader
+                    const loaders = {
+                        docx: DocxLoader,
+                        txt: TextLoader,
+                        pptx: PPTXLoader,
+                    };
+
+                    const LoaderClass = loaders[extension];
+                    loader = new LoaderClass(tempPath);
                 }
-            } else {
-                return res.status(400).json({
-                    success: false,
-                    message: `Unsupported file type: ${extension}`,
+
+                // Load and extract content
+                const docs = await loader.load();
+                const fileContent = docs.map(doc => doc.pageContent).join('');
+                console.log("🐳 Loading file successfully");
+
+                // Split the text into chunks
+                const splitter = new RecursiveCharacterTextSplitter({
+                    chunkSize: 100,
+                    chunkOverlap: 20,
                 });
+                const output = await splitter.createDocuments([fileContent]);
+                const splitterList = output.map(doc => doc.pageContent);
+
+                // Store in database
+                await supabaseHelper.addDocuments(splitterList, {
+                    noteId: noteId,
+                    assetId: assetId,
+                    fileName,
+                });
+
+                console.log("🐳 Converting file to vector successfully");
+                return res.status(200).json({
+                    success: true,
+                    message: "File processed successfully",
+                    chunks: splitterList.length,
+                });
+
+            } finally {
+                // Clean up temporary file
+                if (tempPath && fs.existsSync(tempPath)) {
+                    try {
+                        fs.unlinkSync(tempPath);
+                    } catch (error) {
+                        console.error(`😡 Failed to delete temp file ${tempPath}:`, error);
+                    }
+                }
             }
-
-            // Load and read
-            const docs = await loader.load();
-            let fileContent = '';
-            docs.forEach(doc => {
-                fileContent = fileContent + doc.pageContent;
-            });
-            // console.log("File content: " + fileContent);
-
-            // 2. Split the text into small chunks
-            const splitter = new RecursiveCharacterTextSplitter({
-                chunkSize: 100,
-                chunkOverlap: 20,
-            });
-            const output = await splitter.createDocuments([fileContent]);
-
-            let splitterList = [];
-            output.forEach(doc => {
-                splitterList.push(doc.pageContent)
-            });
-            // console.log("Splitter List: " + splitterList);
-            
-            await supabaseHelper.addDocuments(splitterList, {
-                noteDocsId,
-                fileName,
-                noteId,
-            });
-
-            // Delete temp file
-            if (tempPath !== '') {
-                console.log("Temp path: " + tempPath);
-                fs.unlinkSync(tempPath);
-            }
-
-            return res.status(200).json({
-                success: true,
-                message: "File processed and converted to vector",
-            });
 
         } catch (error) {
-            console.error("❌ Error loading file and converting to vector:", error);
+            console.error("😡 Error loading file and converting to vector:", error);
             return res.status(500).json({
                 success: false,
                 message: "Failed to load file and convert to vector",

@@ -47,10 +47,10 @@ class SupabaseHelper {
                     tableName: this.tableName
                 }
             );
-            console.log(`✅ Inserted ${splitterList.length} chunks into Supabase`);
+            console.log(`🐳 Inserted ${splitterList.length} chunks into Supabase`);
             return { success: true };
         } catch (error) {
-            console.error("❌ Error adding documents to Supabase:", error);
+            console.error("😡 Error adding documents to Supabase:", error);
             return { success: false, message: error.message };
         }
     }
@@ -65,13 +65,13 @@ class SupabaseHelper {
                 }
             );
 
-            const filter = { noteId: String(noteId) };
+            const filter = { noteId: noteId };
 
             const results = await vectorStore.similaritySearch(queryText, k, filter);
-            console.log(`🔍 Found ${results.length} results for noteId=${noteId}`);
+            console.log(`🐳 Found ${results.length} results for noteId=${noteId}`);
             return results;
         } catch (error) {
-            console.error("❌ Error querying documents:", error);
+            console.error("😡 Error querying documents:", error);
             return [];
         }
     }
