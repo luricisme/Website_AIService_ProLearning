@@ -3,6 +3,7 @@ import flashcardsController from '../../controllers/flashcards/flashcards.contro
 
 const router = express.Router();
 
-router.post('/generate', flashcardsController.generateFlashcard);
+router.post('/generate-by-file', flashcardsController.generateFlashcardByFile);
+router.post('/generate-by-note', flashcardsController.generateFlashcardByNote);
 
 export default router;
