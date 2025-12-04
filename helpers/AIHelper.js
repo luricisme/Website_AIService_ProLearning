@@ -117,9 +117,54 @@ class AIHelper {
   }
 
   // FLASHCARD
-  async generateFlashcardByFile(assetId, fileUrl, extension) {
-    const docs = await this.loadFile(assetId, fileUrl, extension);
 
+  // async generateFlashcardByFile(assetId, fileUrl, extension) {
+  //   const docs = await this.loadFile(assetId, fileUrl, extension);
+
+  //   // Define prompt
+  //   const prompt = PromptTemplate.fromTemplate(`
+  //     You are an assistant that extracts key concepts from a document and converts them into flashcards.
+
+  //     ### Task:
+  //     Read the entire document below and extract ALL important concepts and definitions.
+  //     Your flashcards MUST fully represent the document's content with no missing key ideas.
+
+  //     Return them strictly in the following format:
+  //     Word1|Definition1;Word2|Definition2;Word3|Definition3
+
+  //     ### Hard rules:
+  //     - Output ONLY the flashcard pairs in the exact format above.
+  //     - No explanations, no notes, no extra text.
+  //     - No markdown, no HTML, no quotes.
+  //     - Each "Word" is a meaningful concept from the document.
+  //     - Each "Definition" must accurately and completely reflect the intended meaning from the file.
+  //     - Include as many flashcards as needed to cover the entire document. 
+  //     - Ensure the flashcards collectively represent **all key information** in the document.
+
+  //     ### Document:
+  //     {context}
+  //   `);
+
+  //   // Instantiate
+  //   const chain = await createStuffDocumentsChain({
+  //     llm: this.llm,
+  //     outputParser: new StringOutputParser(),
+  //     prompt,
+  //   });
+
+  //   let result = await chain.invoke({ context: docs });
+
+  //   result = result
+  //     .replace(/```[^`]*```/g, "") // remove fenced code blocks
+  //     .replace(/```/g, "")
+  //     .replace(/<[^>]*>/g, "") // remove any HTML if model produced
+  //     .trim();
+
+  //   // console.log("Summarize File: ", result);
+  //   return result;
+  // }
+
+  async generateFlashcardByFile(content) {
     // Define prompt
     const prompt = PromptTemplate.fromTemplate(`
       You are an assistant that extracts key concepts from a document and converts them into flashcards.
@@ -151,6 +196,11 @@ class AIHelper {
       prompt,
     });
 
+    // Format input template
+    const docs = [
+      new Document({ pageContent: content })
+    ];
+
     let result = await chain.invoke({ context: docs });
 
     result = result
@@ -164,6 +214,7 @@ class AIHelper {
   }
 
   async generateFlashcardByNote(content) {
+    console.log("Content in AI Helper: ", content);
     // Define prompt
     const prompt = PromptTemplate.fromTemplate(`
       You are an assistant that extracts key concepts from a HTML content and converts them into flashcards.

@@ -3,17 +3,9 @@ import aiHelper from "../../helpers/AIHelper.js";
 class FlashcardsController {
     async generateFlashcardByFile(req, res) {
         try {
-            const { assetId, fileUrl } = req.body;
+            const { content } = req.body;
 
-            if (!assetId || !fileUrl) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Missing fields in payload",
-                });
-            }
-
-            const extension = fileUrl.split('.').pop().toLowerCase();
-            const data = await aiHelper.generateFlashcardByFile(assetId, fileUrl, extension);
+            const data = await aiHelper.generateFlashcardByFile(content);
 
             return res.status(200).json({
                 success: true,
@@ -41,6 +33,7 @@ class FlashcardsController {
                 });
             }
 
+            console.log("Content received: ", content);
             const data = await aiHelper.generateFlashcardByNote(content);
 
             return res.status(200).json({
