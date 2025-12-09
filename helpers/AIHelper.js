@@ -22,7 +22,7 @@ class AIHelper {
       return AIHelper.instance;
     }
 
-    this.model = 'gemini-2.0-flash';
+    this.model = 'gemini-2.5-flash';
 
     // Root SDK
     this.ai = new GoogleGenerativeAI({
